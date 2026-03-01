@@ -26,14 +26,25 @@ function App() {
     useState<(typeof ERROR_LEVELS)[number]>("M");
   const canvasRef = useRef<HTMLDivElement>(null);
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     const canvas = canvasRef.current?.querySelector("canvas");
     if (!canvas) return;
-    const url = canvas.toDataURL("image/png");
-    const link = document.createElement("a");
-    link.download = "qrcode.png";
-    link.href = url;
-    link.click();
+
+    canvas.toBlob(async (blob) => {
+      if (!blob) return;
+      const file = new File([blob], "qrcode.png", { type: "image/png" });
+
+      if (navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file] });
+      } else {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.download = "qrcode.png";
+        link.href = url;
+        link.click();
+        URL.revokeObjectURL(url);
+      }
+    }, "image/png");
   };
 
   return (
@@ -133,7 +144,7 @@ function App() {
           disabled={!text}
           size="large"
         >
-          Download PNG
+          Save QR Code
         </Button>
       </Stack>
     </Container>
