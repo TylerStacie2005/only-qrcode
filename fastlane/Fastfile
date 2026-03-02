@@ -47,7 +47,7 @@ end
 
 platform :android do
   desc "Upload AAB to Google Play internal testing track"
-  lane :upload_to_play_store do
+  lane :deploy do
     upload_to_play_store(
       json_key: File.expand_path("~/.google/play-service-account.json"),
       package_name: "com.tylermecham.onlyqrcode",
