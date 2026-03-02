@@ -1,0 +1,1 @@
+Initial release! Generate and customize QR codes with zero tracking and zero ads.
