@@ -1,0 +1,21 @@
+Only QR Code does one thing and does it well: generate QR codes.
+
+No tracking. No ads. No account. No internet required. Just open the app, type your text or URL, and get a QR code instantly.
+
+FEATURES:
+- Generate QR codes from any text, URL, email, phone number, or Wi-Fi credentials
+- Customize QR code size from 128px to 512px
+- Choose custom foreground and background colors
+- Adjust error correction level (L, M, Q, H) for more or less data redundancy
+- Save QR codes as high-quality PNG images
+- Share directly to Messages, Mail, AirDrop, or any other app
+
+PRIVACY FIRST:
+- No analytics or tracking of any kind
+- No ads, ever
+- No account or sign-up required
+- No internet connection needed
+- No data leaves your device
+- Open source: https://github.com/TylerStacie2005/only-qrcode
+
+Only QR Code is free, fast, and respects your privacy. That's it.
