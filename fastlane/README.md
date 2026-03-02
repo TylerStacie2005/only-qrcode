@@ -31,6 +31,27 @@ Upload screenshots and metadata to App Store Connect
 
 Submit build to TestFlight
 
+### ios submit_for_review
+
+```sh
+[bundle exec] fastlane ios submit_for_review
+```
+
+Submit for App Store review
+
+----
+
+
+## Android
+
+### android deploy
+
+```sh
+[bundle exec] fastlane android deploy
+```
+
+Upload AAB to Google Play internal testing track
+
 ----
 
 This README.md is auto-generated and will be re-generated every time [_fastlane_](https://fastlane.tools) is run.
