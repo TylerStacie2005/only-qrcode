@@ -41,7 +41,7 @@ platform :ios do
       skip_submission: false,
       skip_waiting_for_build_processing: false,
       distribute_external: false,
-      changelog: "Added Fastlane automation for store deployments. Fixed export compliance flag.",
+      changelog: "Updated app icon. Bug fixes and improvements.",
     )
   end
 

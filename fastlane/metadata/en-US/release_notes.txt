@@ -1,1 +1,1 @@
-Initial release! Generate and customize QR codes with zero tracking and zero ads.
+Updated app icon for a fresh new look. Bug fixes and improvements.
