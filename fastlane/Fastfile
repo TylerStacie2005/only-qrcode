@@ -11,6 +11,7 @@ platform :ios do
 
     deliver(
       api_key: api_key,
+      app_icon_path: "./fastlane/metadata/app_icon.png",
       skip_binary_upload: true,
       skip_metadata: false,
       skip_screenshots: false,
@@ -54,6 +55,7 @@ platform :ios do
 
     deliver(
       api_key: api_key,
+      app_icon_path: "./fastlane/metadata/app_icon.png",
       skip_binary_upload: true,
       skip_metadata: false,
       skip_screenshots: false,
