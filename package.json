@@ -8,14 +8,20 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
+    "dev-tauri": "tauri dev",
+    "dev-ios": "tauri ios dev --open --host",
+    "dev-android": "tauri android dev",
     "tauri": "tauri",
     "generate-image": "generate-image"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
+    "@mui/icons-material": "^7.3.9",
     "@mui/material": "^7.3.7",
     "@tauri-apps/api": "^2.10.1",
+    "@tauri-apps/plugin-opener": "^2.5.3",
+    "jsqr": "^1.4.0",
     "qrcode.react": "^4.2.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
