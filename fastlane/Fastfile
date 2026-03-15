@@ -11,7 +11,7 @@ platform :ios do
 
     deliver(
       api_key: api_key,
-      app_icon_path: "./fastlane/metadata/app_icon.png",
+      app_version: "1.1.0",
       skip_binary_upload: true,
       skip_metadata: false,
       skip_screenshots: false,
@@ -37,11 +37,30 @@ platform :ios do
 
     upload_to_testflight(
       api_key: api_key,
-      ipa: "./src-tauri/gen/apple/build/arm64/Only QR Code.ipa",
+      ipa: "./src-tauri/gen/apple/build/appstore/Only QR Code.ipa",
       skip_submission: false,
       skip_waiting_for_build_processing: false,
       distribute_external: false,
       changelog: "New: QR code reader, 14 frame styles, center icon picker, title text, native Save to Photos, Share, responsive sizing.",
+    )
+  end
+
+  desc "Cancel pending App Store review"
+  lane :cancel_review do
+    api_key = app_store_connect_api_key(
+      key_id: "33VP2RG924",
+      issuer_id: "69a6de7b-a8ae-47e3-e053-5b8c7c11a4d1",
+      key_filepath: File.expand_path("~/.appstoreconnect/private_keys/AuthKey_33VP2RG924.p8"),
+    )
+
+    deliver(
+      api_key: api_key,
+      app_version: "1.1.0",
+      reject_if_possible: true,
+      skip_binary_upload: true,
+      skip_metadata: true,
+      skip_screenshots: true,
+      force: true,
     )
   end
 
@@ -55,7 +74,7 @@ platform :ios do
 
     deliver(
       api_key: api_key,
-      app_icon_path: "./fastlane/metadata/app_icon.png",
+      app_version: "1.1.0",
       skip_binary_upload: true,
       skip_metadata: false,
       skip_screenshots: false,
