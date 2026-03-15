@@ -22,7 +22,7 @@ platform :ios do
         add_id_info_uses_idfa: false,
       },
       app_review_information: {
-        notes: "No demo account needed. Simply type any text and tap Save QR Code to generate a QR code.",
+        notes: "No demo account needed. Type any text to create a QR code with optional frames and center icons. Switch to Read mode to decode QR codes from images.",
       },
     )
   end
@@ -41,7 +41,7 @@ platform :ios do
       skip_submission: false,
       skip_waiting_for_build_processing: false,
       distribute_external: false,
-      changelog: "Updated app icon. Bug fixes and improvements.",
+      changelog: "New: QR code reader, 14 frame styles, center icon picker, title text, native Save to Photos, Share, responsive sizing.",
     )
   end
 
@@ -75,7 +75,7 @@ platform :ios do
         last_name: "Mecham",
         phone_number: "+18015555555",
         email_address: "tyler@simplechoicesapp.com",
-        notes: "No demo account needed. Simply type any text and tap Save QR Code to generate a QR code.",
+        notes: "No demo account needed. Type any text to create a QR code with optional frames and center icons. Switch to Read mode to decode QR codes from images.",
       },
     )
   end
