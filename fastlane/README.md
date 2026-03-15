@@ -31,6 +31,14 @@ Upload screenshots and metadata to App Store Connect
 
 Submit build to TestFlight
 
+### ios cancel_review
+
+```sh
+[bundle exec] fastlane ios cancel_review
+```
+
+Cancel pending App Store review
+
 ### ios submit_for_review
 
 ```sh
