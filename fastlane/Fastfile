@@ -11,7 +11,7 @@ platform :ios do
 
     deliver(
       api_key: api_key,
-      app_version: "1.1.0",
+      app_version: "1.1.1",
       skip_binary_upload: true,
       skip_metadata: false,
       skip_screenshots: false,
@@ -41,7 +41,7 @@ platform :ios do
       skip_submission: false,
       skip_waiting_for_build_processing: false,
       distribute_external: false,
-      changelog: "New: QR code reader, 14 frame styles, center icon picker, title text, native Save to Photos, Share, responsive sizing.",
+      changelog: "Lock app to portrait mode for a more consistent experience.",
     )
   end
 
@@ -61,6 +61,7 @@ platform :ios do
       skip_metadata: true,
       skip_screenshots: true,
       force: true,
+      precheck_include_in_app_purchases: false,
     )
   end
 
@@ -74,11 +75,10 @@ platform :ios do
 
     deliver(
       api_key: api_key,
-      app_version: "1.1.0",
+      app_version: "1.1.1",
       skip_binary_upload: true,
       skip_metadata: false,
-      skip_screenshots: false,
-      overwrite_screenshots: true,
+      skip_screenshots: true,
       submit_for_review: true,
       automatic_release: true,
       force: true,
@@ -107,8 +107,8 @@ platform :android do
       json_key: File.expand_path("~/.google/play-service-account.json"),
       package_name: "com.tylermecham.onlyqrcode",
       aab: "./src-tauri/gen/android/app/build/outputs/bundle/universalRelease/app-universal-release.aab",
-      track: "internal",
-      release_status: "draft",
+      track: "production",
+      release_status: "completed",
     )
   end
 end
