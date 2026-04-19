@@ -1,0 +1,1 @@
+Simple QR Code Generator. No tracking. No ads. No internet required.

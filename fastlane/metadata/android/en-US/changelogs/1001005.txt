@@ -1,0 +1,1 @@
+Initial release of Only QR Code. Generate QR codes from text, URLs, emails, phone numbers, or Wi-Fi credentials. Read QR codes from images. Add frames and center icons. Save and share as PNG. No tracking, no ads, no account, no internet needed.
