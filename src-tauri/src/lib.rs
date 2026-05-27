@@ -3,29 +3,125 @@ use tauri::command;
 
 #[cfg(target_os = "ios")]
 mod ios {
-    use std::ffi::{c_void, CString};
-    use std::os::raw::c_char;
+    use std::ffi::{c_char, CString};
 
     extern "C" {
-        fn dlsym(handle: *mut c_void, symbol: *const c_char) -> *mut c_void;
+        fn save_image_to_photos(path: *const c_char) -> i32;
     }
-
-    const RTLD_DEFAULT: *mut c_void = -2isize as *mut c_void;
 
     pub fn save_to_photos(path: &str) -> Result<(), String> {
         let c_path = CString::new(path).map_err(|e| e.to_string())?;
-        let sym_name = CString::new("save_image_to_photos").unwrap();
-        let sym = unsafe { dlsym(RTLD_DEFAULT, sym_name.as_ptr()) };
-        if sym.is_null() {
-            return Err("save_image_to_photos symbol not found".into());
+        let result = unsafe { save_image_to_photos(c_path.as_ptr()) };
+        match result {
+            0 => Ok(()),
+            -2 => Err("Photo library permission denied".into()),
+            _ => Err("Failed to save image to Photos".into()),
         }
-        let func: extern "C" fn(*const c_char) -> i32 =
-            unsafe { std::mem::transmute(sym) };
-        let result = func(c_path.as_ptr());
-        if result == 0 {
+    }
+}
+
+#[cfg(target_os = "android")]
+mod android {
+    use jni::objects::{JObject, JValue};
+    use jni::JavaVM;
+
+    pub fn save_to_gallery(bytes: &[u8], filename: &str) -> Result<(), String> {
+        let ctx = ndk_context::android_context();
+        let vm = unsafe { JavaVM::from_raw(ctx.vm().cast()) }
+            .map_err(|e| format!("JavaVM::from_raw: {e}"))?;
+        let mut env = vm
+            .attach_current_thread()
+            .map_err(|e| format!("attach_current_thread: {e}"))?;
+
+        let context = unsafe { JObject::from_raw(ctx.context().cast()) };
+
+        let class = env
+            .find_class("com/tylermecham/onlyqrcode/SaveToGallery")
+            .map_err(|e| format!("find_class: {e}"))?;
+        let jbytes = env
+            .byte_array_from_slice(bytes)
+            .map_err(|e| format!("byte_array_from_slice: {e}"))?;
+        let jname = env
+            .new_string(filename)
+            .map_err(|e| format!("new_string: {e}"))?;
+
+        let result = env
+            .call_static_method(
+                &class,
+                "saveImage",
+                "(Landroid/content/Context;[BLjava/lang/String;)Ljava/lang/String;",
+                &[
+                    JValue::Object(&context),
+                    JValue::Object(&jbytes),
+                    JValue::Object(&jname),
+                ],
+            )
+            .map_err(|e| format!("call_static_method: {e}"))?;
+
+        if env.exception_check().unwrap_or(false) {
+            let _ = env.exception_clear();
+            return Err("Java exception during save".into());
+        }
+
+        let obj = result.l().map_err(|e| format!("result.l: {e}"))?;
+        if obj.is_null() {
             Ok(())
         } else {
-            Err("Failed to save image to Photos".into())
+            let msg: String = env
+                .get_string((&obj).into())
+                .map_err(|e| format!("get_string: {e}"))?
+                .into();
+            Err(msg)
+        }
+    }
+
+    pub fn share_image(bytes: &[u8], filename: &str) -> Result<(), String> {
+        let ctx = ndk_context::android_context();
+        let vm = unsafe { JavaVM::from_raw(ctx.vm().cast()) }
+            .map_err(|e| format!("JavaVM::from_raw: {e}"))?;
+        let mut env = vm
+            .attach_current_thread()
+            .map_err(|e| format!("attach_current_thread: {e}"))?;
+
+        let context = unsafe { JObject::from_raw(ctx.context().cast()) };
+
+        let class = env
+            .find_class("com/tylermecham/onlyqrcode/ShareImage")
+            .map_err(|e| format!("find_class: {e}"))?;
+        let jbytes = env
+            .byte_array_from_slice(bytes)
+            .map_err(|e| format!("byte_array_from_slice: {e}"))?;
+        let jname = env
+            .new_string(filename)
+            .map_err(|e| format!("new_string: {e}"))?;
+
+        let result = env
+            .call_static_method(
+                &class,
+                "share",
+                "(Landroid/content/Context;[BLjava/lang/String;)Ljava/lang/String;",
+                &[
+                    JValue::Object(&context),
+                    JValue::Object(&jbytes),
+                    JValue::Object(&jname),
+                ],
+            )
+            .map_err(|e| format!("call_static_method: {e}"))?;
+
+        if env.exception_check().unwrap_or(false) {
+            let _ = env.exception_clear();
+            return Err("Java exception during share".into());
+        }
+
+        let obj = result.l().map_err(|e| format!("result.l: {e}"))?;
+        if obj.is_null() {
+            Ok(())
+        } else {
+            let msg: String = env
+                .get_string((&obj).into())
+                .map_err(|e| format!("get_string: {e}"))?
+                .into();
+            Err(msg)
         }
     }
 }
@@ -36,28 +132,59 @@ fn save_qr_to_photos(base64_data: String) -> Result<(), String> {
         .decode(&base64_data)
         .map_err(|e| e.to_string())?;
 
-    let tmp_dir = std::env::temp_dir();
-    let tmp_path = tmp_dir.join("qrcode.png");
-    std::fs::write(&tmp_path, &data).map_err(|e| e.to_string())?;
-
     #[cfg(target_os = "ios")]
     {
+        let tmp_path = std::env::temp_dir().join("qrcode.png");
+        std::fs::write(&tmp_path, &data).map_err(|e| e.to_string())?;
         ios::save_to_photos(tmp_path.to_str().ok_or("Invalid path")?)?;
+        return Ok(());
     }
 
-    #[cfg(not(target_os = "ios"))]
+    #[cfg(target_os = "android")]
     {
-        return Err("Save to Photos is only supported on iOS".into());
+        let filename = format!(
+            "qrcode-{}.png",
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_secs())
+                .unwrap_or(0)
+        );
+        android::save_to_gallery(&data, &filename)?;
+        return Ok(());
     }
 
-    Ok(())
+    #[cfg(not(any(target_os = "ios", target_os = "android")))]
+    {
+        let _ = data;
+        Err("Save to Photos is only supported on mobile".into())
+    }
+}
+
+#[command]
+fn share_qr_image(base64_data: String) -> Result<(), String> {
+    let data = base64::engine::general_purpose::STANDARD
+        .decode(&base64_data)
+        .map_err(|e| e.to_string())?;
+
+    #[cfg(target_os = "android")]
+    {
+        android::share_image(&data, "qrcode.png")?;
+        return Ok(());
+    }
+
+    #[cfg(not(target_os = "android"))]
+    {
+        let _ = data;
+        Err("Native share is only supported on Android".into())
+    }
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    #[allow(unused_mut)]
+    let mut builder = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![save_qr_to_photos])
+        .invoke_handler(tauri::generate_handler![save_qr_to_photos, share_qr_image])
         .setup(|app| {
             if cfg!(debug_assertions) {
                 app.handle().plugin(
@@ -67,7 +194,14 @@ pub fn run() {
                 )?;
             }
             Ok(())
-        })
+        });
+
+    #[cfg(debug_assertions)]
+    {
+        builder = builder.plugin(tauri_plugin_mcp_bridge::init());
+    }
+
+    builder
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

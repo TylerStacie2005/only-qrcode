@@ -8,6 +8,7 @@ import {
   Paper,
   Popover,
   Slider,
+  Snackbar,
   Stack,
   TextField,
   ToggleButton,
@@ -294,6 +295,11 @@ function App() {
   const [decodedText, setDecodedText] = useState<string | null>(null);
   const [decodeError, setDecodeError] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ open: boolean; message: string; severity: "success" | "error" }>({
+    open: false,
+    message: "",
+    severity: "success",
+  });
 
   const handleDecode = useCallback(async (file: File) => {
     setDecodeError(false);
@@ -734,17 +740,42 @@ function App() {
     if (!base64) return;
     try {
       await invoke("save_qr_to_photos", { base64Data: base64 });
-    } catch {
-      const link = document.createElement("a");
-      link.download = "qrcode.png";
-      link.href = dataUrl;
-      link.click();
+      setToast({ open: true, message: "Saved to Photos", severity: "success" });
+    } catch (err) {
+      const msg = typeof err === "string" ? err : (err as Error)?.message ?? "Save failed";
+      if (msg.includes("only supported on mobile")) {
+        const link = document.createElement("a");
+        link.download = "qrcode.png";
+        link.href = dataUrl;
+        link.click();
+        return;
+      }
+      setToast({ open: true, message: msg, severity: "error" });
     }
   };
 
   const handleShare = async () => {
     const canvas = buildExportCanvas();
     if (!canvas) return;
+    const dataUrl = canvas.toDataURL("image/png");
+    const base64 = dataUrl.split(",")[1];
+
+    // Android WebView has no Web Share API, so use the native share intent.
+    if (base64) {
+      try {
+        await invoke("share_qr_image", { base64Data: base64 });
+        return;
+      } catch (err) {
+        const msg = typeof err === "string" ? err : (err as Error)?.message ?? "";
+        // Only fall through to the web path when native share isn't available.
+        if (!msg.includes("only supported on Android")) {
+          setToast({ open: true, message: msg, severity: "error" });
+          return;
+        }
+      }
+    }
+
+    // Web fallback (iOS WKWebView / desktop browsers that support Web Share).
     const blob = await new Promise<Blob | null>((resolve) =>
       canvas.toBlob((b) => resolve(b), "image/png")
     );
@@ -752,6 +783,8 @@ function App() {
     const file = new File([blob], "qrcode.png", { type: "image/png" });
     if (navigator.canShare?.({ files: [file] })) {
       await navigator.share({ files: [file] });
+    } else {
+      setToast({ open: true, message: "Sharing isn't supported on this device", severity: "error" });
     }
   };
 
@@ -889,7 +922,7 @@ function App() {
   // ── Render ──
 
   return (
-    <Container maxWidth="sm" sx={{ pt: "env(safe-area-inset-top, 16px)", pb: 4, px: 2 }}>
+    <Container maxWidth="sm" sx={{ pt: "env(safe-area-inset-top, 16px)", pb: "calc(env(safe-area-inset-bottom, 0px) + 32px)", px: 2 }}>
       <Typography variant="h4" align="center" gutterBottom>
         Only QR Code
       </Typography>
@@ -1198,6 +1231,21 @@ function App() {
           )}
         </Stack>
       )}
+
+      <Snackbar
+        open={toast.open}
+        autoHideDuration={4000}
+        onClose={() => setToast((t) => ({ ...t, open: false }))}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          severity={toast.severity}
+          onClose={() => setToast((t) => ({ ...t, open: false }))}
+          sx={{ width: "100%" }}
+        >
+          {toast.message}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 }
