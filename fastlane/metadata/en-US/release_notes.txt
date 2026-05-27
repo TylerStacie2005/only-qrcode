@@ -1,1 +1,4 @@
-Updated app icon for a fresh new look. Bug fixes and improvements.
+Bug fixes and improvements:
+- Fixed saving QR codes to your photos
+- Fixed sharing QR codes
+- Adjusted the layout so the Save and Share buttons are no longer cut off on some devices
