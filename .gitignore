@@ -26,4 +26,48 @@ dist-ssr
 # Tauri
 src-tauri/gen/
 src-tauri/target/
+**/.tauri/
+
+# Android / Gradle
+.gradle/
+build/
+local.properties
+captures/
+.externalNativeBuild/
+.cxx/
+*.aab
+*.apk
+output-metadata.json
+*.iml
+misc.xml
+deploymentTargetDropDown.xml
+render.experimental.xml
+
+# Keystore / signing secrets
+*.jks
+*.keystore
+*.p8
+*.p12
+*.mobileprovision
+*.provisionprofile
+*.cer
+key.properties
+google-services.json
+
+# Environment
+.env
+.env.local
+
+# Profiling
+*.hprof
+
+# Fastlane
 fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots
+fastlane/test_output
+fastlane/README.md
+
+# Swift Package Manager
+**/.build/
+**/.swiftpm/
