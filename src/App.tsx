@@ -3,6 +3,7 @@ import {
   Alert,
   Box,
   Button,
+  CircularProgress,
   Container,
   IconButton,
   Paper,
@@ -250,25 +251,107 @@ function FrameThumb({ type }: { type: FrameKey }) {
   }
 }
 
-// ── QR decode helper ──
+// ── QR decode helpers ──
 
-function decodeQRFromImage(file: File): Promise<string | null> {
+// Decode base64 (no data-url prefix) into a File for the shared decode path.
+function base64ToFile(base64: string, name: string, type: string): File {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new File([bytes], name, { type });
+}
+
+function loadImageElement(blob: Blob): Promise<HTMLImageElement | null> {
   return new Promise((resolve) => {
+    const url = URL.createObjectURL(blob);
     const img = new Image();
     img.onload = () => {
-      const canvas = document.createElement("canvas");
-      canvas.width = img.width;
-      canvas.height = img.height;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return resolve(null);
-      ctx.drawImage(img, 0, 0);
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const result = jsQR(imageData.data, canvas.width, canvas.height);
-      resolve(result?.data ?? null);
+      URL.revokeObjectURL(url);
+      resolve(img);
     };
-    img.onerror = () => resolve(null);
-    img.src = URL.createObjectURL(file);
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      resolve(null);
+    };
+    img.src = url;
   });
+}
+
+// Draw the source at a bounded size and run jsQR on the pixels.
+// iOS WKWebView silently fails getImageData on very large canvases, and full-res
+// phone photos (12 MP+) are both too large and needlessly slow to scan — so we cap
+// the longest edge before reading pixels.
+function scanAtSize(
+  source: CanvasImageSource,
+  srcW: number,
+  srcH: number,
+  maxDim: number
+): string | null {
+  const scale = Math.min(1, maxDim / Math.max(srcW, srcH));
+  const w = Math.max(1, Math.round(srcW * scale));
+  const h = Math.max(1, Math.round(srcH * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  if (!ctx) return null;
+  ctx.drawImage(source, 0, 0, w, h);
+  let imageData: ImageData;
+  try {
+    imageData = ctx.getImageData(0, 0, w, h);
+  } catch {
+    return null;
+  }
+  const result = jsQR(imageData.data, w, h, { inversionAttempts: "attemptBoth" });
+  return result?.data ?? null;
+}
+
+async function decodeQRFromBlob(blob: Blob): Promise<string | null> {
+  // Prefer createImageBitmap (handles EXIF orientation + large images well on iOS 15+),
+  // falling back to an <img> element on older WebViews.
+  let source: CanvasImageSource | null = null;
+  let bitmap: ImageBitmap | null = null;
+  let width = 0;
+  let height = 0;
+
+  if (typeof createImageBitmap === "function") {
+    try {
+      bitmap = await createImageBitmap(blob);
+      source = bitmap;
+      width = bitmap.width;
+      height = bitmap.height;
+    } catch {
+      bitmap = null;
+    }
+  }
+  if (!source) {
+    const img = await loadImageElement(blob);
+    if (!img) return null;
+    source = img;
+    width = img.naturalWidth || img.width;
+    height = img.naturalHeight || img.height;
+  }
+  if (!width || !height) {
+    bitmap?.close?.();
+    return null;
+  }
+
+  // Try a few bounded resolutions: a mid size first (fast, fixes huge photos),
+  // then smaller and larger passes for sparse vs. dense codes.
+  const longest = Math.max(width, height);
+  const candidates = [Math.min(longest, 1600), Math.min(longest, 900), Math.min(longest, 2400)];
+  const tried = new Set<number>();
+  for (const dim of candidates) {
+    if (tried.has(dim)) continue;
+    tried.add(dim);
+    const result = scanAtSize(source, width, height, dim);
+    if (result) {
+      bitmap?.close?.();
+      return result;
+    }
+  }
+  bitmap?.close?.();
+  return null;
 }
 
 // ── App ──
@@ -290,10 +373,10 @@ function App() {
   const [iconPickerAnchor, setIconPickerAnchor] = useState<HTMLElement | null>(null);
   const [selectedFrame, setSelectedFrame] = useState<FrameKey>("none");
   const qrRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [decodedText, setDecodedText] = useState<string | null>(null);
   const [decodeError, setDecodeError] = useState(false);
+  const [decoding, setDecoding] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [toast, setToast] = useState<{ open: boolean; message: string; severity: "success" | "error" }>({
     open: false,
@@ -301,13 +384,21 @@ function App() {
     severity: "success",
   });
 
-  const handleDecode = useCallback(async (file: File) => {
+  const handleDecode = useCallback(async (blob: Blob) => {
     setDecodeError(false);
     setDecodedText(null);
-    setPreviewUrl(URL.createObjectURL(file));
-    const result = await decodeQRFromImage(file);
-    if (result) setDecodedText(result);
-    else setDecodeError(true);
+    setPreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return URL.createObjectURL(blob);
+    });
+    setDecoding(true);
+    try {
+      const result = await decodeQRFromBlob(blob);
+      if (result) setDecodedText(result);
+      else setDecodeError(true);
+    } finally {
+      setDecoding(false);
+    }
   }, []);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -315,6 +406,46 @@ function App() {
     if (file) await handleDecode(file);
     e.target.value = "";
   };
+
+  const handlePasteImage = useCallback(async () => {
+    // Native clipboard read first — the only reliable path on iOS/Android, where
+    // navigator.clipboard.read() is unavailable or blocked inside the WebView.
+    let nativeUnsupported = false;
+    try {
+      const base64 = await invoke<string>("read_clipboard_image");
+      await handleDecode(base64ToFile(base64, "paste.png", "image/png"));
+      return;
+    } catch (err) {
+      const msg = (typeof err === "string" ? err : (err as Error)?.message ?? "").toLowerCase();
+      if (msg.includes("only supported on")) {
+        nativeUnsupported = true; // desktop — fall through to the Web Clipboard API
+      } else if (msg.includes("no image")) {
+        setToast({ open: true, message: "No image found on the clipboard", severity: "error" });
+        return;
+      } else {
+        setToast({ open: true, message: "Couldn't read the clipboard image", severity: "error" });
+        return;
+      }
+    }
+
+    if (!nativeUnsupported) return;
+
+    // Desktop fallback: Web Clipboard API.
+    try {
+      const items = await navigator.clipboard.read();
+      for (const item of items) {
+        const imageType = item.types.find((t) => t.startsWith("image/"));
+        if (imageType) {
+          const blob = await item.getType(imageType);
+          await handleDecode(blob);
+          return;
+        }
+      }
+      setToast({ open: true, message: "No image found on the clipboard", severity: "error" });
+    } catch {
+      setToast({ open: true, message: "Clipboard access was blocked. Copy an image, then tap Paste.", severity: "error" });
+    }
+  }, [handleDecode]);
 
   useEffect(() => {
     const handlePaste = async (e: ClipboardEvent) => {
@@ -1179,31 +1310,12 @@ function App() {
         </Stack>
       ) : (
         <Stack spacing={3}>
-          <input ref={fileInputRef} type="file" accept="image/*" hidden onChange={handleFileSelect} />
-
           <Stack direction="row" spacing={2}>
-            <Button variant="outlined" size="large" onClick={() => fileInputRef.current?.click()} fullWidth>
+            <Button variant="outlined" size="large" component="label" disabled={decoding} fullWidth>
               Select Image
+              <input type="file" accept="image/*" hidden onChange={handleFileSelect} />
             </Button>
-            <Button
-              variant="outlined"
-              size="large"
-              onClick={async () => {
-                try {
-                  const items = await navigator.clipboard.read();
-                  for (const item of items) {
-                    const imageType = item.types.find((t) => t.startsWith("image/"));
-                    if (imageType) {
-                      const blob = await item.getType(imageType);
-                      const file = new File([blob], "paste.png", { type: imageType });
-                      await handleDecode(file);
-                      return;
-                    }
-                  }
-                } catch { /* clipboard access denied or empty */ }
-              }}
-              fullWidth
-            >
+            <Button variant="outlined" size="large" onClick={handlePasteImage} disabled={decoding} fullWidth>
               Paste Image
             </Button>
           </Stack>
@@ -1212,10 +1324,16 @@ function App() {
             <Paper elevation={1} sx={{ p: 2 }}>
               <Stack spacing={2} alignItems="center">
                 <Box component="img" src={previewUrl} sx={{ maxWidth: "100%", maxHeight: 200, borderRadius: 1 }} />
-                {decodeError && (
+                {decoding && (
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <CircularProgress size={20} />
+                    <Typography color="text.secondary">Scanning for QR code…</Typography>
+                  </Stack>
+                )}
+                {!decoding && decodeError && (
                   <Alert severity="error" sx={{ width: "100%" }}>No QR code found in this image.</Alert>
                 )}
-                {decodedText && (
+                {!decoding && decodedText && (
                   <>
                     <Alert severity="success" sx={{ width: "100%", wordBreak: "break-all" }}>{decodedText}</Alert>
                     <Stack direction="row" spacing={1} sx={{ width: "100%" }}>
