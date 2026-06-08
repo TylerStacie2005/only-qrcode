@@ -289,38 +289,11 @@ function loadImageElement(blob: Blob): Promise<HTMLImageElement | null> {
   });
 }
 
-// Draw the source at a bounded size and run jsQR on the pixels.
-// iOS WKWebView silently fails getImageData on very large canvases, and full-res
-// phone photos (12 MP+) are both too large and needlessly slow to scan — so we cap
-// the longest edge before reading pixels.
-function scanAtSize(
-  source: CanvasImageSource,
-  srcW: number,
-  srcH: number,
-  maxDim: number
-): string | null {
-  const scale = Math.min(1, maxDim / Math.max(srcW, srcH));
-  const w = Math.max(1, Math.round(srcW * scale));
-  const h = Math.max(1, Math.round(srcH * scale));
-  const canvas = document.createElement("canvas");
-  canvas.width = w;
-  canvas.height = h;
-  const ctx = canvas.getContext("2d", { willReadFrequently: true });
-  if (!ctx) return null;
-  ctx.drawImage(source, 0, 0, w, h);
-  let imageData: ImageData;
-  try {
-    imageData = ctx.getImageData(0, 0, w, h);
-  } catch {
-    return null;
-  }
-  const result = jsQR(imageData.data, w, h, { inversionAttempts: "attemptBoth" });
-  return result?.data ?? null;
-}
-
-async function decodeQRFromBlob(blob: Blob): Promise<string | null> {
-  // Prefer createImageBitmap (handles EXIF orientation + large images well on iOS 15+),
-  // falling back to an <img> element on older WebViews.
+// Rasterize a blob into a downscaled canvas. iOS WKWebView fails getImageData on
+// very large canvases, and — more importantly — a full-res phone photo (12 MP+)
+// becomes a multi-MB payload that stalls the native IPC bridge. Capping the longest
+// edge keeps every downstream step fast. Returns null if the image can't be decoded.
+async function blobToCanvas(blob: Blob, maxDim: number): Promise<HTMLCanvasElement | null> {
   let source: CanvasImageSource | null = null;
   let bitmap: ImageBitmap | null = null;
   let width = 0;
@@ -348,41 +321,86 @@ async function decodeQRFromBlob(blob: Blob): Promise<string | null> {
     return null;
   }
 
-  // Try a few bounded resolutions: a mid size first (fast, fixes huge photos),
-  // then smaller and larger passes for sparse vs. dense codes.
-  const longest = Math.max(width, height);
-  const candidates = [Math.min(longest, 1600), Math.min(longest, 900), Math.min(longest, 2400)];
-  const tried = new Set<number>();
-  for (const dim of candidates) {
-    if (tried.has(dim)) continue;
-    tried.add(dim);
-    const result = scanAtSize(source, width, height, dim);
-    if (result) {
-      bitmap?.close?.();
-      return result;
-    }
+  const scale = Math.min(1, maxDim / Math.max(width, height));
+  const w = Math.max(1, Math.round(width * scale));
+  const h = Math.max(1, Math.round(height * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    bitmap?.close?.();
+    return null;
   }
+  ctx.drawImage(source, 0, 0, w, h);
   bitmap?.close?.();
-  return null;
+  return canvas;
+}
+
+function jsqrOnCanvas(canvas: HTMLCanvasElement): string | null {
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  if (!ctx) return null;
+  try {
+    const d = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    return jsQR(d.data, canvas.width, canvas.height, { inversionAttempts: "attemptBoth" })?.data ?? null;
+  } catch {
+    return null;
+  }
+}
+
+// Time-box a native call so a stalled bridge can never hang the UI.
+function invokeWithTimeout<T>(cmd: string, args: Record<string, unknown>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout>;
+  const timeout = new Promise<T>((_, reject) => {
+    timer = setTimeout(() => reject(new Error("timeout")), ms);
+  });
+  return Promise.race([
+    invoke<T>(cmd, args).finally(() => clearTimeout(timer)),
+    timeout,
+  ]);
 }
 
 // Decode preferring the native scanner (iOS Vision / Android ML Kit), which reads
-// stylized, warped, and glare-affected codes that jsQR can't. Falls back to jsQR
-// on desktop or if the native scanner errors unexpectedly.
+// stylized, warped, and glare-affected codes that jsQR can't. The image is downscaled
+// first so the native IPC payload stays small (a full-res library photo otherwise
+// stalls the bridge), and the call is time-boxed so the UI never hangs. Falls back to
+// jsQR on desktop or if the native scanner is unavailable.
 async function decodeQR(blob: Blob): Promise<string | null> {
-  try {
-    const base64 = await blobToBase64(blob);
-    const text = await invoke<string>("decode_qr_image", { base64Data: base64 });
-    if (text) return text;
-  } catch (err) {
-    const msg = (typeof err === "string" ? err : (err as Error)?.message ?? "").toLowerCase();
-    // Native scanner ran and found nothing — it's the strongest decoder, so trust
-    // it rather than re-running the weaker jsQR.
-    if (msg.includes("no qr code")) return null;
-    // Otherwise (desktop "only supported on mobile", or an unexpected error) fall
-    // through to jsQR.
+  const canvas = await blobToCanvas(blob, 2200);
+
+  // Small JPEG payload for the native scanner (a downscaled canvas, or — if the
+  // WebView couldn't rasterize the format — the raw bytes as a last resort).
+  let base64: string | null = null;
+  if (canvas) {
+    base64 = canvas.toDataURL("image/jpeg", 0.92).split(",")[1] ?? null;
+  } else {
+    try {
+      base64 = await blobToBase64(blob);
+    } catch {
+      base64 = null;
+    }
   }
-  return decodeQRFromBlob(blob);
+
+  if (base64) {
+    try {
+      const text = await invokeWithTimeout<string>("decode_qr_image", { base64Data: base64 }, 12000);
+      if (text) return text;
+    } catch (err) {
+      const msg = (typeof err === "string" ? err : (err as Error)?.message ?? "").toLowerCase();
+      // Native scanner ran and found nothing — it's the strongest decoder, so trust it.
+      if (msg.includes("no qr code")) return null;
+      // Desktop ("only supported on mobile"), a timeout, or an unexpected error → jsQR.
+    }
+  }
+
+  // jsQR fallback (desktop, or native unavailable). Needs a rasterized canvas.
+  if (canvas) {
+    const result = jsqrOnCanvas(canvas);
+    if (result) return result;
+    const smaller = await blobToCanvas(blob, 1000);
+    return smaller ? jsqrOnCanvas(smaller) : null;
+  }
+  return null;
 }
 
 // ── App ──
@@ -424,7 +442,11 @@ function App() {
     });
     setDecoding(true);
     try {
-      const result = await decodeQR(blob);
+      // Absolute backstop: never let the spinner run forever, whatever goes wrong.
+      const result = await Promise.race([
+        decodeQR(blob),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), 20000)),
+      ]);
       if (result) setDecodedText(result);
       else setDecodeError(true);
     } finally {
