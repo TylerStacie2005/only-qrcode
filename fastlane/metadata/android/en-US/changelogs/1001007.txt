@@ -1,4 +1,4 @@
 Bug fixes:
-- Fixed reading QR codes from photos in your library
+- Fixed reading QR codes from images in your gallery
 - Fixed pasting an image to scan its QR code
 - More reliable scanning, including large, full-resolution photos
