@@ -11,7 +11,7 @@ platform :ios do
 
     deliver(
       api_key: api_key,
-      app_version: "1.1.7",
+      app_version: "1.1.8",
       skip_binary_upload: true,
       skip_metadata: false,
       skip_screenshots: false,
@@ -41,7 +41,7 @@ platform :ios do
       skip_submission: false,
       skip_waiting_for_build_processing: false,
       distribute_external: false,
-      changelog: "Fixes reading QR codes from your photo library and from a pasted image, plus more reliable scanning of large photos.",
+      changelog: "Read QR codes from your photo library or a pasted image, with much stronger scanning that now reads stylized, logo-center, and angled codes.",
     )
   end
 
@@ -55,7 +55,7 @@ platform :ios do
 
     deliver(
       api_key: api_key,
-      app_version: "1.1.0",
+      app_version: "1.1.7",
       reject_if_possible: true,
       skip_binary_upload: true,
       skip_metadata: true,
@@ -75,7 +75,7 @@ platform :ios do
 
     deliver(
       api_key: api_key,
-      app_version: "1.1.7",
+      app_version: "1.1.8",
       skip_binary_upload: true,
       skip_metadata: false,
       skip_screenshots: true,

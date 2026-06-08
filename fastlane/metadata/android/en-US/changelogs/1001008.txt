@@ -1,4 +1,4 @@
 Improvements:
-- Read QR codes from photos in your library
+- Read QR codes from images in your gallery
 - Paste an image to scan its QR code
 - Much stronger scanning — now reads stylized, logo-center, angled, and lower-quality codes
