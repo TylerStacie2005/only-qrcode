@@ -261,6 +261,18 @@ function base64ToFile(base64: string, name: string, type: string): File {
   return new File([bytes], name, { type });
 }
 
+function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const result = typeof reader.result === "string" ? reader.result : "";
+      resolve(result.split(",")[1] ?? "");
+    };
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
+}
+
 function loadImageElement(blob: Blob): Promise<HTMLImageElement | null> {
   return new Promise((resolve) => {
     const url = URL.createObjectURL(blob);
@@ -354,6 +366,25 @@ async function decodeQRFromBlob(blob: Blob): Promise<string | null> {
   return null;
 }
 
+// Decode preferring the native scanner (iOS Vision / Android ML Kit), which reads
+// stylized, warped, and glare-affected codes that jsQR can't. Falls back to jsQR
+// on desktop or if the native scanner errors unexpectedly.
+async function decodeQR(blob: Blob): Promise<string | null> {
+  try {
+    const base64 = await blobToBase64(blob);
+    const text = await invoke<string>("decode_qr_image", { base64Data: base64 });
+    if (text) return text;
+  } catch (err) {
+    const msg = (typeof err === "string" ? err : (err as Error)?.message ?? "").toLowerCase();
+    // Native scanner ran and found nothing — it's the strongest decoder, so trust
+    // it rather than re-running the weaker jsQR.
+    if (msg.includes("no qr code")) return null;
+    // Otherwise (desktop "only supported on mobile", or an unexpected error) fall
+    // through to jsQR.
+  }
+  return decodeQRFromBlob(blob);
+}
+
 // ── App ──
 
 type Mode = "create" | "read";
@@ -393,7 +424,7 @@ function App() {
     });
     setDecoding(true);
     try {
-      const result = await decodeQRFromBlob(blob);
+      const result = await decodeQR(blob);
       if (result) setDecodedText(result);
       else setDecodeError(true);
     } finally {

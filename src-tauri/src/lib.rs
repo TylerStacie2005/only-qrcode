@@ -8,6 +8,7 @@ mod ios {
     extern "C" {
         fn save_image_to_photos(path: *const c_char) -> i32;
         fn read_clipboard_image_to_file(path: *const c_char) -> i32;
+        fn decode_qr_image_file(img_path: *const c_char, out_path: *const c_char) -> i32;
     }
 
     pub fn save_to_photos(path: &str) -> Result<(), String> {
@@ -27,6 +28,17 @@ mod ios {
             0 => Ok(()),
             -1 => Err("No image on the clipboard".into()),
             _ => Err("Failed to read clipboard image".into()),
+        }
+    }
+
+    pub fn decode_qr_image(img_path: &str, out_path: &str) -> Result<(), String> {
+        let c_img = CString::new(img_path).map_err(|e| e.to_string())?;
+        let c_out = CString::new(out_path).map_err(|e| e.to_string())?;
+        let result = unsafe { decode_qr_image_file(c_img.as_ptr(), c_out.as_ptr()) };
+        match result {
+            0 => Ok(()),
+            -1 => Err("No QR code found".into()),
+            _ => Err("Failed to decode image".into()),
         }
     }
 }
@@ -128,6 +140,52 @@ mod android {
             Err(err.to_string())
         } else {
             Err("Unexpected clipboard result".into())
+        }
+    }
+
+    pub fn decode_qr_image(bytes: &[u8]) -> Result<String, String> {
+        let ctx = ndk_context::android_context();
+        let vm = unsafe { JavaVM::from_raw(ctx.vm().cast()) }
+            .map_err(|e| format!("JavaVM::from_raw: {e}"))?;
+        let mut env = vm
+            .attach_current_thread()
+            .map_err(|e| format!("attach_current_thread: {e}"))?;
+
+        let class = env
+            .find_class("com/tylermecham/onlyqrcode/DecodeQr")
+            .map_err(|e| format!("find_class: {e}"))?;
+        let jbytes = env
+            .byte_array_from_slice(bytes)
+            .map_err(|e| format!("byte_array_from_slice: {e}"))?;
+
+        let result = env
+            .call_static_method(
+                &class,
+                "decode",
+                "([B)Ljava/lang/String;",
+                &[JValue::Object(&jbytes)],
+            )
+            .map_err(|e| format!("call_static_method: {e}"))?;
+
+        if env.exception_check().unwrap_or(false) {
+            let _ = env.exception_clear();
+            return Err("Java exception while decoding QR".into());
+        }
+
+        let obj = result.l().map_err(|e| format!("result.l: {e}"))?;
+        let value: String = env
+            .get_string((&obj).into())
+            .map_err(|e| format!("get_string: {e}"))?
+            .into();
+
+        if value == "none" {
+            Err("No QR code found".into())
+        } else if let Some(text) = value.strip_prefix("ok:") {
+            Ok(text.to_string())
+        } else if let Some(err) = value.strip_prefix("error:") {
+            Err(err.to_string())
+        } else {
+            Err("Unexpected decode result".into())
         }
     }
 
@@ -257,6 +315,40 @@ fn read_clipboard_image() -> Result<String, String> {
     }
 }
 
+#[command]
+fn decode_qr_image(base64_data: String) -> Result<String, String> {
+    let data = base64::engine::general_purpose::STANDARD
+        .decode(&base64_data)
+        .map_err(|e| e.to_string())?;
+
+    #[cfg(target_os = "ios")]
+    {
+        let img_path = std::env::temp_dir().join("qr-decode-in");
+        let out_path = std::env::temp_dir().join("qr-decode-out.txt");
+        std::fs::write(&img_path, &data).map_err(|e| e.to_string())?;
+        let res = ios::decode_qr_image(
+            img_path.to_str().ok_or("Invalid path")?,
+            out_path.to_str().ok_or("Invalid path")?,
+        );
+        let _ = std::fs::remove_file(&img_path);
+        res?;
+        let text = std::fs::read_to_string(&out_path).map_err(|e| e.to_string())?;
+        let _ = std::fs::remove_file(&out_path);
+        return Ok(text);
+    }
+
+    #[cfg(target_os = "android")]
+    {
+        return android::decode_qr_image(&data);
+    }
+
+    #[cfg(not(any(target_os = "ios", target_os = "android")))]
+    {
+        let _ = data;
+        Err("Image QR decoding is only supported on mobile".into())
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     #[allow(unused_mut)]
@@ -265,7 +357,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             save_qr_to_photos,
             share_qr_image,
-            read_clipboard_image
+            read_clipboard_image,
+            decode_qr_image
         ])
         .setup(|app| {
             if cfg!(debug_assertions) {
