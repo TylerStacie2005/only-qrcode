@@ -29,6 +29,10 @@
     "iOS": {
       "developmentTeam": "AU75Q8PSKE"
     },
+    "macOS": {
+      "entitlements": "./Entitlements.plist",
+      "minimumSystemVersion": "11.0"
+    },
     "active": true,
     "targets": "all",
     "icon": [
