@@ -6,6 +6,7 @@ import {
   CircularProgress,
   Container,
   IconButton,
+  Link,
   Paper,
   Popover,
   Slider,
@@ -39,7 +40,7 @@ import {
 import { QRCodeCanvas } from "qrcode.react";
 import jsQR from "jsqr";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { invoke } from "@tauri-apps/api/core";
+import { invoke, isTauri } from "@tauri-apps/api/core";
 
 // ── Icon definitions ──
 
@@ -349,6 +350,20 @@ function jsqrOnCanvas(canvas: HTMLCanvasElement): string | null {
 }
 
 // Time-box a native call so a stalled bridge can never hang the UI.
+const PRIVACY_POLICY_URL = "https://simplechoicesapp.com/onlyqrcode/privacy";
+
+async function openPrivacyPolicy() {
+  try {
+    if (isTauri()) {
+      await openUrl(PRIVACY_POLICY_URL);
+      return;
+    }
+  } catch {
+    // fall through to the browser path
+  }
+  window.open(PRIVACY_POLICY_URL, "_blank");
+}
+
 function invokeWithTimeout<T>(cmd: string, args: Record<string, unknown>, ms: number): Promise<T> {
   let timer: ReturnType<typeof setTimeout>;
   const timeout = new Promise<T>((_, reject) => {
@@ -1402,6 +1417,19 @@ function App() {
           )}
         </Stack>
       )}
+
+      <Box sx={{ mt: 4, textAlign: "center" }}>
+        <Link
+          component="button"
+          type="button"
+          variant="caption"
+          color="text.secondary"
+          underline="hover"
+          onClick={openPrivacyPolicy}
+        >
+          Privacy Policy
+        </Link>
+      </Box>
 
       <Snackbar
         open={toast.open}
