@@ -18,4 +18,4 @@ PRIVACY FIRST:
 - No data leaves your device
 - Open source: https://github.com/TylerStacie2005/only-qrcode
 
-Only QR Code is free, fast, and respects your privacy. That's it.
+Only QR Code is fast and respects your privacy. That's it.
