@@ -27,7 +27,8 @@
   },
   "bundle": {
     "iOS": {
-      "developmentTeam": "AU75Q8PSKE"
+      "developmentTeam": "AU75Q8PSKE",
+      "minimumSystemVersion": "15.0"
     },
     "macOS": {
       "entitlements": "./Entitlements.plist",
