@@ -2597,6 +2597,7 @@ dependencies = [
  "serde_json",
  "tauri",
  "tauri-build",
+ "tauri-plugin-admob",
  "tauri-plugin-log",
  "tauri-plugin-mcp-bridge",
  "tauri-plugin-opener",
@@ -3798,6 +3799,18 @@ dependencies = [
  "serde_json",
  "tauri-utils",
  "walkdir",
+]
+
+[[package]]
+name = "tauri-plugin-admob"
+version = "0.1.0"
+dependencies = [
+ "log",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-plugin",
+ "thiserror 2.0.18",
 ]
 
 [[package]]

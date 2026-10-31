@@ -15,6 +15,9 @@
     "moduleDetection": "force",
     "noEmit": true,
     "jsx": "react-jsx",
+    "paths": {
+      "tauri-plugin-admob-api": ["./tauri-plugin-admob/guest-js/index.ts"]
+    },
 
     /* Linting */
     "strict": true,

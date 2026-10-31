@@ -11,6 +11,7 @@
     "dev-tauri": "tauri dev",
     "dev-ios": "tauri ios dev --open --host",
     "dev-android": "tauri android dev",
+    "ios:ads": "python3 scripts/ios-ads.py",
     "tauri": "tauri",
     "generate-image": "generate-image"
   },

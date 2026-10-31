@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Only QR Code (Android) in AdMob. pub-6808961846456830. -->
+    <string name="admob_app_id" translatable="false">ca-app-pub-6808961846456830~9611979634</string>
+</resources>

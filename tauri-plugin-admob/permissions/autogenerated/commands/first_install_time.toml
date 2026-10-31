@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-first-install-time"
+description = "Enables the first_install_time command without any pre-configured scope."
+commands.allow = ["first_install_time"]
+
+[[permission]]
+identifier = "deny-first-install-time"
+description = "Denies the first_install_time command without any pre-configured scope."
+commands.deny = ["first_install_time"]

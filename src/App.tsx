@@ -41,6 +41,7 @@ import { QRCodeCanvas } from "qrcode.react";
 import jsQR from "jsqr";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { invoke, isTauri } from "@tauri-apps/api/core";
+import { maybeShowInterstitial } from "./ads/adsService";
 
 // ── Icon definitions ──
 
@@ -468,6 +469,14 @@ function App() {
       setDecoding(false);
     }
   }, []);
+
+  // Switching tabs leaves a generated code or a scan result behind: a natural ad break.
+  const handleModeChange = (next: Mode) => {
+    if (next === mode) return;
+    const finishedUse = mode === "create" ? text !== "" : decodedText !== null;
+    setMode(next);
+    if (finishedUse) void maybeShowInterstitial();
+  };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -940,6 +949,7 @@ function App() {
     try {
       await invoke("save_qr_to_photos", { base64Data: base64 });
       setToast({ open: true, message: "Saved to Photos", severity: "success" });
+      void maybeShowInterstitial();
     } catch (err) {
       const msg = typeof err === "string" ? err : (err as Error)?.message ?? "Save failed";
       if (msg.includes("only supported on mobile")) {
@@ -982,6 +992,7 @@ function App() {
     const file = new File([blob], "qrcode.png", { type: "image/png" });
     if (navigator.canShare?.({ files: [file] })) {
       await navigator.share({ files: [file] });
+      void maybeShowInterstitial();
     } else {
       setToast({ open: true, message: "Sharing isn't supported on this device", severity: "error" });
     }
@@ -1129,7 +1140,7 @@ function App() {
       <ToggleButtonGroup
         value={mode}
         exclusive
-        onChange={(_, v) => v && setMode(v)}
+        onChange={(_, v) => v && handleModeChange(v)}
         fullWidth
         sx={{ mb: 3 }}
       >

@@ -354,6 +354,7 @@ pub fn run() {
     #[allow(unused_mut)]
     let mut builder = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_admob::init())
         .invoke_handler(tauri::generate_handler![
             save_qr_to_photos,
             share_qr_image,

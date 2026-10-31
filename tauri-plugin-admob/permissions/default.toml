@@ -1,0 +1,12 @@
+[default]
+description = "Default permissions for the admob plugin"
+permissions = [
+    "allow-initialize",
+    "allow-load-interstitial",
+    "allow-show-interstitial",
+    "allow-load-rewarded",
+    "allow-show-rewarded",
+    "allow-privacy-options-status",
+    "allow-show-privacy-options",
+    "allow-first-install-time",
+]
