@@ -7,12 +7,12 @@ Only QR Code
 Simple QR Code Generator
 
 ## Promotional Text (170 chars max, can be updated without new build)
-Generate QR codes instantly. Customize size, colors, and error correction. Save or share as PNG. No tracking, no ads, no account required.
+Generate QR codes instantly. Customize size, colors, and error correction. Save or share as PNG. No account required. If you bought it, you never see ads.
 
 ## Description (4000 chars max)
 Only QR Code does one thing and does it well: generate QR codes.
 
-No tracking. No ads. No account. No internet required. Just open the app, type your text or URL, and get a QR code instantly.
+Shows an occasional ad between uses. No account. No internet needed to make codes. Just open the app, type your text or URL, and get a QR code instantly.
 
 FEATURES:
 - Generate QR codes from any text, URL, email, phone number, or Wi-Fi credentials
@@ -22,25 +22,26 @@ FEATURES:
 - Save QR codes as high-quality PNG images
 - Share directly to Messages, Mail, AirDrop, or any other app
 
-PRIVACY FIRST:
-- No analytics or tracking of any kind
-- No ads, ever
+SIMPLE AND PRIVATE:
+- An occasional full-screen ad between uses on iPhone and iPad. The Mac version has no ads
+- If you bought the app, you never see ads
 - No account or sign-up required
-- No internet connection needed
-- No data leaves your device
+- No analytics or tracking by the app itself; the ad SDK collects only what it needs to serve ads
+- Making codes needs no internet connection
+- Your codes and images stay on your device
 - Open source: https://github.com/TylerStacie2005/only-qrcode
 
-Only QR Code is free, fast, and respects your privacy. That's it.
+Only QR Code is fast and keeps it simple. That's it.
 
 ## Keywords (100 chars max, comma-separated)
-qr,qr code,qrcode,generator,barcode,scan,create,make,free,no ads
+qr,qr code,qrcode,generator,barcode,scan,create,make,reader
 
 ## Category
 Primary: Utilities
 Secondary: Productivity
 
 ## What's New (v1.0.0)
-Initial release! Generate and customize QR codes with zero tracking and zero ads.
+Initial release! Generate and customize QR codes.
 
 ## Copyright
 2026 Tyler Mecham
