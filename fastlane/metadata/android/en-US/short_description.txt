@@ -1,1 +1,1 @@
-Simple QR Code Generator. No tracking. No ads. No internet required.
+Simple QR code generator and reader. No account, works offline.

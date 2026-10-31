@@ -12,7 +12,7 @@
   "violenceCartoonOrFantasy": "NONE",
   "violenceRealisticProlongedGraphicOrSadistic": "NONE",
   "violenceRealistic": "NONE",
-  "advertising": false,
+  "advertising": true,
   "ageAssurance": false,
   "gambling": false,
   "healthOrWellnessTopics": false,

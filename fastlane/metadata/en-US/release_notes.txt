@@ -1,4 +1,1 @@
-Improvements:
-- Read QR codes from photos in your library
-- Paste an image to scan its QR code
-- Much stronger scanning — now reads stylized, logo-center, angled, and lower-quality codes
+Shows an occasional ad between uses on iPhone and iPad. If you bought the app, you never see ads. The Mac version has no ads.
