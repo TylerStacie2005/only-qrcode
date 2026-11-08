@@ -1,1 +1,1 @@
-qr,qr code,qrcode,generator,barcode,scan,create,make,reader
+qr,qr code,qrcode,generator,scanner,reader,barcode,scan,create,wifi,share

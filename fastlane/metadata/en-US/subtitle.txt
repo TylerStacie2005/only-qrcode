@@ -1,1 +1,1 @@
-Simple QR Code Generator
+Make and scan QR codes fast

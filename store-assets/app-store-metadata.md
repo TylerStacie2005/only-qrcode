@@ -4,37 +4,39 @@
 Only QR Code
 
 ## Subtitle (30 chars max)
-Simple QR Code Generator
+Make and scan QR codes fast
 
 ## Promotional Text (170 chars max, can be updated without new build)
-Generate QR codes instantly. Customize size, colors, and error correction. Save or share as PNG. No account required. If you bought it, you never see ads.
+Type it, get a QR code. Point the camera, read one. Pick your colors and size, save a crisp PNG or share it anywhere. Free, no account, works offline.
 
 ## Description (4000 chars max)
-Only QR Code does one thing and does it well: generate QR codes.
+Only QR Code does one thing and does it well: QR codes, in and out, with nothing in the way.
 
-Shows an occasional ad between uses. No account. No internet needed to make codes. Just open the app, type your text or URL, and get a QR code instantly.
+Type a link, a message, a phone number or your Wi-Fi details and the code appears as you type. Point the camera at any QR code and read it on the spot. No account, no clutter and no internet needed to make a code.
 
-FEATURES:
-- Generate QR codes from any text, URL, email, phone number, or Wi-Fi credentials
-- Customize QR code size from 128px to 512px
-- Choose custom foreground and background colors
-- Adjust error correction level (L, M, Q, H) for more or less data redundancy
-- Save QR codes as high-quality PNG images
-- Share directly to Messages, Mail, AirDrop, or any other app
+MAKE
+- QR codes from text, URLs, email addresses, phone numbers or Wi-Fi credentials
+- Sizes from 128 to 512 pixels, sharp enough for a flyer or a phone screen
+- Your own foreground and background colors
+- Error correction you control (L, M, Q, H), so a code survives a logo or a scuffed print
+- Save as a clean PNG or share straight to Messages, Mail, AirDrop or any app
 
-SIMPLE AND PRIVATE:
-- An occasional full-screen ad between uses on iPhone and iPad. The Mac version has no ads
+READ
+- Scan any QR code with the camera and see what it says
+
+SIMPLE AND PRIVATE
+- Free, with an occasional ad between uses on iPhone and iPad. The Mac version has no ads
 - If you bought the app, you never see ads
-- No account or sign-up required
+- No account or sign-up
 - No analytics or tracking by the app itself; the ad SDK collects only what it needs to serve ads
 - Making codes needs no internet connection
 - Your codes and images stay on your device
 - Open source: https://github.com/TylerStacie2005/only-qrcode
 
-Only QR Code is fast and keeps it simple. That's it.
+Fast, small and honest. That is the whole app.
 
 ## Keywords (100 chars max, comma-separated)
-qr,qr code,qrcode,generator,barcode,scan,create,make,reader
+qr,qr code,qrcode,generator,scanner,reader,barcode,scan,create,wifi,share
 
 ## Category
 Primary: Utilities
