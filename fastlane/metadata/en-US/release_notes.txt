@@ -1,1 +1,1 @@
-Shows an occasional ad between uses on iPhone and iPad. If you bought the app, you never see ads. The Mac version has no ads.
+Maintenance update, rebuilt with the latest tools.

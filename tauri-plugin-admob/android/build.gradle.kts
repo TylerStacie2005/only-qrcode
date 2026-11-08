@@ -35,7 +35,7 @@ android {
 dependencies {
     // Tauri 2.12's Android template ships kotlin-gradle-plugin 2.2, which reads this
     // SDK's Kotlin metadata; keep the version in step with FlappyFeet's plugin copy.
-    implementation("com.google.android.gms:play-services-ads:25.2.0")
+    implementation("com.google.android.gms:play-services-ads:25.5.0")
     implementation("com.google.android.ump:user-messaging-platform:4.0.0")
     implementation(project(":tauri-android"))
 }
