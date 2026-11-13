@@ -11,8 +11,8 @@ let canRequestAds = false;
 let interstitialReady = false;
 let interstitialLoading = false;
 let usesSinceAd = 0;
-// Counting from launch keeps the first ad out of the opening stretch.
-let lastAdAt = Date.now();
+// Most sessions reach a single break, so the first one may show an ad; the gap applies between ads.
+let lastAdAt = 0;
 
 /**
  * True only in the iOS and Android apps. macOS and the browser never show ads. iPadOS web
